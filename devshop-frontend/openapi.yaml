@@ -1,0 +1,283 @@
+openapi: 3.0.0
+info:
+  title: DevShop API (Vulnerable e-Commerce)
+  description: |
+    REST API dla e-sklepu "DevShop".
+    **UWAGA:** To API zawiera celowe luki bezpieczeństwa (SQLi, XSS, IDOR, brak Rate Limitingu) na potrzeby projektu z cyberbezpieczeństwa. 
+    Proszę implementować backend dokładnie według opisanych podatności!
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+    description: Lokalny serwer deweloperski
+paths:
+  /api/auth/register:
+    post:
+      summary: Rejestracja nowego użytkownika
+      description: Celowy brak walidacji siły hasła.
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRequest'
+      responses:
+        '201':
+          description: Użytkownik zarejestrowany pomyślnie
+        '400':
+          description: Błąd walidacji (np. email zajęty)
+  
+  /api/auth/login:
+    post:
+      summary: Logowanie użytkownika
+      description: Zwraca token JWT. **Podatność:** Celowy brak rate-limitingu (podatne na brute-force).
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRequest'
+      responses:
+        '200':
+          description: Pomyślne logowanie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Nieprawidłowe dane logowania
+
+  /api/products:
+    get:
+      summary: Pobiera listę produktów
+      description: Parametr `search` musi być bezpośrednio wklejany do zapytania SQL na backendzie (np. `SELECT * FROM products WHERE name LIKE '%${search}%'`). W przypadku błędu składni SQL, serwer powinien zwrócić błąd 500 z pełnym stack trace.
+      tags:
+        - Products
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          required: false
+          description: Szukana fraza w nazwie produktu
+      responses:
+        '200':
+          description: Lista produktów
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+
+  /api/products/{id}:
+    get:
+      summary: Pobiera szczegóły pojedynczego produktu
+      tags:
+        - Products
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID produktu
+      responses:
+        '200':
+          description: Szczegóły produktu
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: Nie znaleziono produktu
+
+  /api/products/{id}/reviews:
+    get:
+      summary: Pobiera opinie o produkcie
+      description: Ważne dla Frontendu Zwracane dane content mogą zawierać złośliwy kod HTML/JS. Frontend musi to wyrenderować używając np. `dangerouslySetInnerHTML`.
+      tags:
+        - Reviews
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID produktu
+      responses:
+        '200':
+          description: Lista opinii
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Review'
+    post:
+      summary: Dodaje opinię do produktu
+      description: Podatność (Stored XSS) Backend absolutnie nie może filtrować ani sanityzować pola `content` w locie do bazy danych. Tagi `<script>` muszą być zapisane w oryginalnej formie.
+      tags:
+        - Reviews
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID produktu
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+                  example: Świetny produkt! <script>alert(localStorage.getItem('token'))</script>
+      responses:
+        '201':
+          description: Opinia dodana
+        '401':
+          description: Brak lub nieprawidłowy token JWT
+
+  /api/orders:
+    post:
+      summary: Składa nowe zamówienie
+      description: Podatność (Hardcoded Secrets) Kontroler obsługujący ten endpoint musi zawierać w kodzie zahardkodowany, fikcyjny klucz API do procesora płatności.
+      tags:
+        - Orders
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderRequest'
+      responses:
+        '201':
+          description: Zamówienie utworzone
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+
+  /api/orders/{id}:
+    get:
+      summary: Pobiera szczegóły zamówienia
+      description: Podatność (IDOR) Backend weryfikuje jedynie ważność tokenu JWT, ale NIE sprawdza, czy `user_id` przypisane do zamówienia zgadza się z ID w tokenie. Pozwala to na podglądanie cudzych koszyków poprzez zmianę `id` w URL.
+      tags:
+        - Orders
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: integer
+          required: true
+          description: ID zamówienia
+      responses:
+        '200':
+          description: Szczegóły zamówienia
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '404':
+          description: Nie znaleziono zamówienia
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    AuthRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: test@example.com
+        password:
+          type: string
+          example: supertajne123
+          
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: JWT Bearer token
+          
+    Product:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Kubek Programisty"
+        description:
+          type: string
+          example: "Ogrzewa dłonie i kompiluje kod"
+        price:
+          type: number
+          format: float
+          example: 49.99
+          
+    Review:
+      type: object
+      properties:
+        id:
+          type: integer
+        product_id:
+          type: integer
+        user_email:
+          type: string
+          description: "Zwracany mail użytkownika, który napisał opinię"
+        content:
+          type: string
+          description: "Treść opinii, potencjalnie złośliwa (XSS)"
+          
+    OrderRequest:
+      type: object
+      required:
+        - product_ids
+      properties:
+        product_ids:
+          type: array
+          items:
+            type: integer
+          example: [1, 2, 5]
+          
+    Order:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+          description: "ID użytkownika - przydatne do weryfikacji luki IDOR"
+        total:
+          type: number
+          format: float
+        status:
+          type: string
+          example: "PAID"
