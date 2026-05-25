@@ -1,0 +1,28 @@
+{
+  "name": "devshop-vulnerable-api",
+  "version": "1.0.0",
+  "description": "Vulnerable e-Commerce API for cybersecurity educational purposes.",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "db:init": "node scripts/init-db.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@fastify/jwt": "^9.0.1",
+    "@fastify/postgres": "^6.0.1",
+    "dotenv": "^16.4.5",
+    "fastify": "^5.0.0",
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "@types/pg": "^8.11.10",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.6.3"
+  }
+}
