@@ -3,7 +3,7 @@ name: Faza 1 - Niezabezpieczony Pipeline
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   build-and-deploy:
