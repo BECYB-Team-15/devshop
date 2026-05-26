@@ -65,7 +65,7 @@ export default function ProductDetails() {
         <div className="w-full md:w-1/2 space-y-6">
           <h1 className="text-4xl font-bold uppercase tracking-tighter">{product.name}</h1>
           <p className="text-zinc-400 text-lg">{product.description}</p>
-          <div className="text-3xl font-bold">{product.price.toFixed(2)} PLN</div>
+          <div className="text-3xl font-bold">{Number(product.price).toFixed(2)} PLN</div>
           <button 
             onClick={addToCart}
             className="w-full bg-zinc-100 text-black p-4 font-bold uppercase hover:bg-zinc-300 transition-colors"
