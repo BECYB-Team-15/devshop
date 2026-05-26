@@ -1,12 +1,13 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
-import Home from './pages/Home'; // <-- 1. Dodany import Home
+import Home from './pages/Home';
 import Catalog from './pages/Catalog';
 import ProductDetails from './pages/ProductDetails';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Cart from './pages/Cart';
 import OrderDetails from './pages/OrderDetails';
+import UserOrders from './pages/UserOrders';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <Route path="register" element={<Register />} />
           <Route path="cart" element={<Cart />} />
           <Route path="order/:id" element={<OrderDetails />} />
+          <Route path="orders" element={<UserOrders />} />
         </Route>
       </Routes>
     </BrowserRouter>
