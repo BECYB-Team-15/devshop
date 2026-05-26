@@ -22,12 +22,15 @@ export default function Layout() {
             <Link to="/cart" className="hover:text-zinc-400">Koszyk</Link>
             
             {token ? (
-              <button 
-                onClick={handleLogout}
-                className="bg-zinc-100 text-black px-6 py-2 uppercase font-bold hover:bg-zinc-300 transition-colors"
-              >
-                Wyloguj
-              </button>
+              <div className="flex items-center gap-6">
+                <Link to="/orders" className="hover:text-zinc-400">Zamówienia</Link>
+                <button 
+                  onClick={handleLogout}
+                  className="bg-zinc-100 text-black px-6 py-2 uppercase font-bold hover:bg-zinc-300 transition-colors"
+                >
+                  Wyloguj
+                </button>
+              </div>
             ) : (
               <Link 
                 to="/login"
