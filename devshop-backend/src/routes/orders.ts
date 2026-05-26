@@ -2,6 +2,20 @@ import { FastifyInstance, FastifyPluginOptions } from 'fastify';
 
 export default async function orderRoutes(fastify: FastifyInstance, options: FastifyPluginOptions) {
 
+  // Get all orders for the authenticated user
+  fastify.get('/', { preHandler: [fastify.authenticate] }, async (request: any, reply) => {
+    const userId = request.user.id;
+    try {
+      const result = await fastify.pg.query(
+        'SELECT * FROM orders WHERE user_id = $1',
+        [userId]
+      );
+      return result.rows;
+    } catch (err) {
+      return reply.code(500).send(err);
+    }
+  });
+
   // Create order - Vulnerability: Hardcoded Secrets
   fastify.post('/', { preHandler: [fastify.authenticate] }, async (request: any, reply) => {
     const { product_ids } = request.body;

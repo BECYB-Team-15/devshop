@@ -9,7 +9,7 @@ export default async function productRoutes(fastify: FastifyInstance, options: F
     let query = 'SELECT * FROM products';
     if (search) {
       // VULNERABLE: Direct string interpolation
-      query += ` WHERE name LIKE '%${search}%'`;
+      query += ` WHERE name ILIKE '%${search}%'`;
     }
 
     try {
