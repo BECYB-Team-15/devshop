@@ -18,7 +18,7 @@ export default function Layout() {
           </Link>
           
           <nav className="flex gap-6 items-center">
-            <Link to="/" className="hover:text-zinc-400">Katalog</Link>
+            <Link to="/catalog" className="hover:text-zinc-400">Katalog</Link>
             <Link to="/cart" className="hover:text-zinc-400">Koszyk</Link>
             
             {token ? (

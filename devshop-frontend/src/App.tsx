@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
+import Home from './pages/Home'; // <-- 1. Dodany import Home
 import Catalog from './pages/Catalog';
 import ProductDetails from './pages/ProductDetails';
 import Login from './pages/Login';
@@ -12,7 +13,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Layout />}>
-          <Route index element={<Catalog />} />
+          <Route index element={<Home />} />
+          <Route path="catalog" element={<Catalog />} />
           <Route path="product/:id" element={<ProductDetails />} />
           <Route path="login" element={<Login />} />
           <Route path="register" element={<Register />} />

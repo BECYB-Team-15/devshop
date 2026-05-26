@@ -66,7 +66,7 @@ export default function OrderDetails() {
             </div>
             <div className="flex justify-between border-b border-zinc-800 py-2">
               <span className="text-zinc-500">Kwota całkowita:</span>
-              <span className="text-zinc-100 font-bold">{order.total?.toFixed(2)} PLN</span>
+              <span className="text-zinc-100 font-bold">{order.total ? Number(order.total).toFixed(2) : '0.00'} PLN</span>
             </div>
             
             <div className="mt-8">

@@ -74,7 +74,7 @@ export default function Catalog() {
             <h2 className="text-xl font-bold uppercase group-hover:text-zinc-300">{product.name}</h2>
             <p className="text-zinc-500 mt-2 flex-1">{product.description}</p>
             <div className="mt-6 text-2xl font-bold border-t border-zinc-800 pt-4">
-              {product.price.toFixed(2)} PLN
+              {Number(product.price).toFixed(2)} PLN
             </div>
           </Link>
         ))}
