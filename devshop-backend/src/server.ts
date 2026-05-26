@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import fastifyJwt from '@fastify/jwt';
 import fastifyPostgres from '@fastify/postgres';
+import fastifyCors from '@fastify/cors';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -10,6 +11,10 @@ const fastify = Fastify({
 });
 
 // Register Plugins
+fastify.register(fastifyCors, {
+  origin: true // Allows all origins
+});
+
 fastify.register(fastifyPostgres, {
   connectionString: process.env.DATABASE_URL
 });
