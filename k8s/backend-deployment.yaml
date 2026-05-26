@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: devshop-backend
+  namespace: devsecops-team15
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: devshop-backend
+  template:
+    metadata:
+      labels:
+        app: devshop-backend
+    spec:
+      # Skrypt inicjalizujący bazę danych uruchamiany przed startem aplikacji
+      initContainers:
+      - name: db-init
+        image: ghcr.io/becyb-team-15/devshop-backend:latest
+        command: ["npm", "run", "db:init"]
+        env:
+        - name: DATABASE_URL
+          value: "postgres://postgres:postgres@devshop-postgres-service:5432/devshop"
+      containers:
+      - name: backend
+        image: ghcr.io/becyb-team-15/devshop-backend:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: PORT
+          value: "3000"
+        - name: DATABASE_URL
+          value: "postgres://postgres:postgres@devshop-postgres-service:5432/devshop"
+        # Jawny wpis sekretu w pliku konfiguracyjnym (podatność dla Fazy I)
+        - name: JWT_SECRET
+          value: "super-secret-key-123"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: devshop-backend-service
+  namespace: devsecops-team15
+spec:
+  type: ClusterIP
+  selector:
+    app: devshop-backend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
