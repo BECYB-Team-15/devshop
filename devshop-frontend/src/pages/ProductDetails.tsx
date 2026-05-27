@@ -24,8 +24,8 @@ export default function ProductDetails() {
   const [newReview, setNewReview] = useState('');
 
   useEffect(() => {
-    axios.get(`http://localhost:3000/api/products/${id}`).then(res => setProduct(res.data)).catch(() => {});
-    axios.get(`http://localhost:3000/api/products/${id}/reviews`).then(res => setReviews(res.data)).catch(() => {});
+    axios.get(`/api/products/${id}`).then(res => setProduct(res.data)).catch(() => {});
+    axios.get(`/api/products/${id}/reviews`).then(res => setReviews(res.data)).catch(() => {});
   }, [id]);
 
   const addToCart = () => {
@@ -42,12 +42,12 @@ export default function ProductDetails() {
 
     try {
       await axios.post(
-        `http://localhost:3000/api/products/${id}/reviews`,
+        `/api/products/${id}/reviews`,
         { content: newReview },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setNewReview('');
-      const res = await axios.get(`http://localhost:3000/api/products/${id}/reviews`);
+      const res = await axios.get(`/api/products/${id}/reviews`);
       setReviews(res.data);
     } catch {
       alert('Błąd podczas dodawania opinii.');

@@ -17,7 +17,7 @@ export default function Catalog() {
   const fetchProducts = async () => {
     try {
       setError(null);
-      const res = await axios.get(`http://localhost:3000/api/products?search=${search}`);
+      const res = await axios.get(`/api/products?search=${search}`);
       setProducts(res.data);
     } catch (err) {
       // Bezpieczne sprawdzenie typu błędu (zadowala surowego TypeScripta)

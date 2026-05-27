@@ -28,7 +28,7 @@ export default function OrderDetails() {
       try {
         // Wysyłamy zapytanie po zamówienie. Backend sprawdzi czy token jest poprawny, 
         // ale "zapomni" sprawdzić czy zamówienie należy do właściciela tokenu.
-        const res = await axios.get(`http://localhost:3000/api/orders/${id}`, {
+        const res = await axios.get(`/api/orders/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setOrder(res.data);

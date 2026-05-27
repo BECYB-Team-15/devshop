@@ -11,7 +11,7 @@ export default function Register() {
     e.preventDefault();
     try {
       // Celowy brak sprawdzania siły hasła na frontendzie (zakładamy, że backend też tego nie robi)
-      await axios.post('http://localhost:3000/api/auth/register', { email, password });
+      await axios.post('/api/auth/register', { email, password });
       alert('Konto utworzone! Możesz się teraz zalogować.');
       navigate('/login');
     } catch {

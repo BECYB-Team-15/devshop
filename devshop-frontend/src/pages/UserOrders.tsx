@@ -23,7 +23,7 @@ export default function UserOrders() {
       }
 
       try {
-        const response = await axios.get('http://localhost:3000/api/orders', {
+        const response = await axios.get('/api/orders', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setOrders(response.data);

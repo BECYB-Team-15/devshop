@@ -30,7 +30,7 @@ export default function Cart() {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await axios.get('http://localhost:3000/api/products');
+        const res = await axios.get('/api/products');
         setProducts(res.data);
       } catch (err) {
         console.error("Błąd pobierania produktów", err);
@@ -76,7 +76,7 @@ export default function Cart() {
 
     try {
       const response = await axios.post(
-        'http://localhost:3000/api/orders',
+        '/api/orders',
         { product_ids: cartItems },
         { headers: { Authorization: `Bearer ${token}` } }
       );
