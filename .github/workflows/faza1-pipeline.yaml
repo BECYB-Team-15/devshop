@@ -7,6 +7,10 @@ jobs:
   build-and-deploy:
     runs-on: self-hosted 
 
+    permissions:
+      contents: read
+      packages: write
+
     steps:
       - name: Download code from GitHub
         uses: actions/checkout@v4
