@@ -33,6 +33,7 @@ jobs:
           docker push ghcr.io/becyb-team-15/devshop-frontend:${{ github.sha }}
 
       - name: Deploy to Kubernetes
+        shell: bash
         run: |
           sed -i "s|image: ghcr.io/becyb-team-15/devshop-backend:latest|image: ghcr.io/becyb-team-15/devshop-backend:${{ github.sha }}|g" k8s/backend-deployment.yaml
           sed -i "s|image: ghcr.io/becyb-team-15/devshop-frontend:latest|image: ghcr.io/becyb-team-15/devshop-frontend:${{ github.sha }}|g" k8s/frontend-deployment.yaml
