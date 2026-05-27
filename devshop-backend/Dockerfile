@@ -18,6 +18,8 @@ RUN npm ci --legacy-peer-deps
 
 COPY --from=builder /app/dist ./dist
 
+COPY --from=builder /app/scripts ./scripts
+
 USER node
 EXPOSE 3000
 
