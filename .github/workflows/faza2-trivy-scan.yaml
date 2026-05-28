@@ -51,12 +51,6 @@ jobs:
       packages: read
 
     steps:
-      - name: Dodaj Trivy do path
-        run: |
-          echo "Adding Trivy to PATH"
-          $trivyPath = (Get-Item (where.exe trivy)).DirectoryName
-          echo %trivyPath | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
       - name: Checkout kodu
         uses: actions/checkout@v4
 
@@ -66,6 +60,14 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Zainstaluj Trivy
+        run: |
+          $version = "0.70.0"
+          $url = "https://github.com/aquasecurity/trivy/releases/download/v$version/trivy_${version}_windows-64bit.zip"
+          Invoke-WebRequest -Uri $url -OutFile trivy.zip
+          Expand-Archive -Path trivy.zip -DestinationPath trivy-bin -Force
+          echo "${{ github.workspace }}\trivy-bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       # ── Skanowanie obrazu Backend ──
       - name: Trivy — skanowanie obrazu Backend (tabela)
