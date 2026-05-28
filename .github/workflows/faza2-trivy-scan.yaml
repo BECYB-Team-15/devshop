@@ -1,0 +1,199 @@
+name: Trivy secured pipeline
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  # ─────────────────────────────────────────
+  # JOB 1: Build obrazów i push do GHCR
+  # ─────────────────────────────────────────
+  build:
+    name: Build & Push Images
+    runs-on: self-hosted
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image-tag: ${{ github.sha }}
+
+    steps:
+      - name: Checkout kodu
+        uses: actions/checkout@v4
+
+      - name: Logowanie do GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build i push — Backend
+        run: |
+          docker build -t ghcr.io/becyb-team-15/devshop-backend:${{ github.sha }} ./devshop-backend
+          docker push ghcr.io/becyb-team-15/devshop-backend:${{ github.sha }}
+
+      - name: Build i push — Frontend
+        run: |
+          docker build -t ghcr.io/becyb-team-15/devshop-frontend:${{ github.sha }} ./devshop-frontend
+          docker push ghcr.io/becyb-team-15/devshop-frontend:${{ github.sha }}
+
+  # ─────────────────────────────────────────
+  # JOB 2: Trivy — skanowanie obrazów i konfiguracji
+  # ─────────────────────────────────────────
+
+  trivy-scan:
+    name: Trivy Security Scan
+    runs-on: self-hosted
+    needs: build
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout kodu
+        uses: actions/checkout@v4
+
+      - name: Logowanie do GHCR (pobieranie obrazów do skanowania)
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Zainstaluj Trivy
+        run: |
+          $version = "0.70.0"
+          $url = "https://github.com/aquasecurity/trivy/releases/download/v$version/trivy_${version}_windows-64bit.zip"
+          Invoke-WebRequest -Uri $url -OutFile trivy.zip
+          Expand-Archive -Path trivy.zip -DestinationPath trivy-bin -Force
+          echo "${{ github.workspace }}\trivy-bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
+      # ── Skanowanie obrazu Backend ──
+      - name: Trivy — skanowanie obrazu Backend (tabela)
+        continue-on-error: true
+        run: |
+          trivy image `
+            --severity CRITICAL,HIGH `
+            --ignore-unfixed `
+            --exit-code 1 `
+            ghcr.io/becyb-team-15/devshop-backend:${{ github.sha }}
+
+      - name: Trivy — raport Backend HTML
+        continue-on-error: true
+        if: always()
+        run: |
+          trivy image `
+            --severity CRITICAL,HIGH,MEDIUM `
+            --ignore-unfixed `
+            --format json `
+            --output trivy-backend.json `
+            ghcr.io/becyb-team-15/devshop-backend:${{ github.sha }}
+
+      # ── Skanowanie obrazu Frontend ──
+      - name: Trivy — skanowanie obrazu Frontend (tabela)
+        continue-on-error: true
+        run: |
+          trivy image `
+            --severity CRITICAL,HIGH `
+            --ignore-unfixed `
+            --exit-code 1 `
+            ghcr.io/becyb-team-15/devshop-frontend:${{ github.sha }}
+
+      - name: Trivy — raport Frontend HTML
+        if: always()
+        run: |
+          trivy image `
+            --severity CRITICAL,HIGH,MEDIUM `
+            --ignore-unfixed `
+            --format json `
+            --output trivy-frontend.json `
+            ghcr.io/becyb-team-15/devshop-frontend:${{ github.sha }}
+
+      # ── Skanowanie obrazu Postgres (oficjalny obraz) ──
+      - name: Trivy — skanowanie obrazu Postgres (tabela)
+        continue-on-error: true
+        run: |
+          trivy image `
+            --severity CRITICAL,HIGH `
+            --ignore-unfixed `
+            --exit-code 0 `
+            postgres:16-alpine
+
+      - name: Trivy — raport Postgres HTML
+        if: always()
+        run: |
+          trivy image `
+            --severity CRITICAL,HIGH,MEDIUM `
+            --ignore-unfixed `
+            --format json `
+            --output trivy-postgres.json `
+            postgres:16-alpine
+
+      # ── Skanowanie konfiguracji K8s i Dockerfile ──
+      - name: Trivy — skanowanie konfiguracji (Dockerfile + K8s YAML)
+        continue-on-error: true
+        run: |
+          trivy config `
+            --severity CRITICAL,HIGH `
+            --exit-code 1 `
+            .
+
+      - name: Trivy — raport konfiguracji JSON
+        if: always()
+        run: |
+          trivy config `
+            --severity CRITICAL,HIGH,MEDIUM `
+            --format json `
+            --output trivy-config.json `
+            .
+
+      # ── Upload wszystkich raportów ──
+      - name: Upload raportów Trivy
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-security-reports
+          path: |
+            trivy-backend.html
+            trivy-frontend.html
+            trivy-postgres.html
+            trivy-config.json
+      
+      - name: Sprawdź wyniki skanowania — zablokuj deploy jeśli CRITICAL/HIGH
+        run: |
+          $backendCrit = trivy image --severity CRITICAL,HIGH --ignore-unfixed --exit-code 0 --quiet --format json ghcr.io/becyb-team-15/devshop-backend:${{ github.sha }} | ConvertFrom-Json
+          $frontendCrit = trivy image --severity CRITICAL,HIGH --ignore-unfixed --exit-code 0 --quiet --format json ghcr.io/becyb-team-15/devshop-frontend:${{ github.sha }} | ConvertFrom-Json
+
+          $backendCount = ($backendCrit.Results | ForEach-Object { $_.Vulnerabilities } | Where-Object { $_.Severity -in "CRITICAL","HIGH" } | Measure-Object).Count
+          $frontendCount = ($frontendCrit.Results | ForEach-Object { $_.Vulnerabilities } | Where-Object { $_.Severity -in "CRITICAL","HIGH" } | Measure-Object).Count
+
+          Write-Host "Backend CRITICAL/HIGH: $backendCount"
+          Write-Host "Frontend CRITICAL/HIGH: $frontendCount"
+
+          if ($backendCount -gt 0 -or $frontendCount -gt 0) { Write-Host "Znaleziono podatności — deploy zablokowany!"; exit 1 } else { Write-Host "Brak krytycznych podatności — deploy dozwolony" }
+  # ─────────────────────────────────────────
+  # JOB 3: Deploy — uruchamia się TYLKO jeśli skan przeszedł
+  # ─────────────────────────────────────────
+  deploy:
+    name: Deploy to Kubernetes
+    runs-on: self-hosted
+    needs: trivy-scan
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout kodu
+        uses: actions/checkout@v4
+
+      - name: Podmień tag obrazu w manifestach K8s
+        run: |
+          (Get-Content k8s/backend-deployment.yaml) -replace 'image: ghcr.io/becyb-team-15/devshop-backend:latest', 'image: ghcr.io/becyb-team-15/devshop-backend:${{ github.sha }}' | Set-Content k8s/backend-deployment.yaml
+          (Get-Content k8s/frontend-deployment.yaml) -replace 'image: ghcr.io/becyb-team-15/devshop-frontend:latest', 'image: ghcr.io/becyb-team-15/devshop-frontend:${{ github.sha }}' | Set-Content k8s/frontend-deployment.yaml
+
+      - name: Deploy do Kubernetes
+        run: |
+          kubectl apply -f k8s/01-namespace.yaml
+          kubectl apply -f k8s/postgres-deployment.yaml
+          kubectl apply -f k8s/backend-deployment.yaml
+          kubectl apply -f k8s/frontend-deployment.yaml
