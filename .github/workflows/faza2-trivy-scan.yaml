@@ -171,10 +171,7 @@ jobs:
           Write-Host "Backend CRITICAL/HIGH: $backendCount"
           Write-Host "Frontend CRITICAL/HIGH: $frontendCount"
 
-          if ($backendCount -gt 0 -or $frontendCount -gt 0) {
-            Write-Host "Znaleziono podatności — deploy zablokowany!"
-            exit 1
-          }
+          if ($backendCount -gt 0 -or $frontendCount -gt 0) {Write-Host "Znaleziono podatności — deploy zablokowany!"; exit 1}
           Write-Host "Brak krytycznych podatności — deploy dozwolony"
   # ─────────────────────────────────────────
   # JOB 3: Deploy — uruchamia się TYLKO jeśli skan przeszedł
