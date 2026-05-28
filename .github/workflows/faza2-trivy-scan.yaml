@@ -169,8 +169,9 @@ jobs:
           Write-Host "Backend: $bCount | Frontend: $fCount"
           if ($bCount -gt 0 -or $fCount -gt 0) {
             Write-Error "DEPLOY BLOCKED - vulnerabilities found"
+            $host.SetShouldExit(1)
           }
-        shell: pwsh
+    
   # ─────────────────────────────────────────
   # JOB 3: Deploy — uruchamia się TYLKO jeśli skan przeszedł
   # ─────────────────────────────────────────
