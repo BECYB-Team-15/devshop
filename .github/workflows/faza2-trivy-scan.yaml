@@ -52,7 +52,7 @@ jobs:
 
   trivy-scan:
     name: Trivy Security Scan
-    runs-on: self-hosted
+    runs-on: [self-hosted, "${{ inputs.runner_label }}"]
     needs: build
     permissions:
       contents: read
@@ -185,7 +185,7 @@ jobs:
   # ─────────────────────────────────────────
   deploy:
     name: Deploy to Kubernetes
-    runs-on: self-hosted
+    runs-on: [self-hosted, "${{ inputs.runner_label }}"]
     needs: trivy-scan
     permissions:
       contents: read
