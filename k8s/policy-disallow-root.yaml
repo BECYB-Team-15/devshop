@@ -1,0 +1,19 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-root-user
+spec:
+  validationFailureAction: Audit
+  rules:
+  - name: require-run-as-non-root
+    match:
+      any:
+      - resources:
+          kinds:
+          - Pod
+    validate:
+      message: "DEVSECOPS ERROR: Containers cannot run as 'root'. Add 'runAsNonRoot: true' in 'securityContext'."
+      pattern:
+        spec:
+          securityContext:
+            runAsNonRoot: true

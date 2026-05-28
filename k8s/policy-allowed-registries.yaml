@@ -1,0 +1,19 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: allowed-image-registries
+spec:
+  validationFailureAction: Audit
+  rules:
+  - name: allow-only-ghcr-io
+    match:
+      any:
+      - resources:
+          kinds:
+          - Pod
+    validate:
+      message: "DEVSECOPS ERROR: Images must come from your private registry. Pulling from the public Docker Hub is blocked for security reasons!"
+      pattern:
+        spec:
+          containers:
+          - image: "ghcr.io/*"

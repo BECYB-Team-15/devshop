@@ -1,0 +1,22 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-resource-limits
+spec:
+  validationFailureAction: Audit
+  rules:
+  - name: check-memory-and-cpu
+    match:
+      any:
+      - resources:
+          kinds:
+          - Pod
+    validate:
+      message: "DEVSECOPS ERROR: Every container must have memory and CPU limits set to prevent cluster failures!"
+      pattern:
+        spec:
+          containers:
+          - resources:
+              limits:
+                memory: "?*"
+                cpu: "?*"

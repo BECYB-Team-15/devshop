@@ -2,11 +2,18 @@ name: Phase 1 CI/CD Pipeline
 
 on:
   workflow_dispatch:
+    inputs:
+      runner_label:
+        description: 'Choose the self-hosted runner'
+        required: true
+        type: choice
+        options:
+          - jchilczuk    
+          - wzochows  
 
 jobs:
   build-and-deploy:
-    runs-on: self-hosted 
-
+    runs-on: [self-hosted, "${{ inputs.runner_label }}"]
     permissions:
       contents: read
       packages: write
@@ -41,3 +48,8 @@ jobs:
           kubectl apply -f k8s/postgres-deployment.yaml
           kubectl apply -f k8s/backend-deployment.yaml
           kubectl apply -f k8s/frontend-deployment.yaml
+          kubectl apply -f k8s/policy-block-latest.yaml
+          kubectl apply -f k8s/policy-allowed-registries.yaml
+          kubectl apply -f k8s/policy-require-limits.yaml
+          kubectl apply -f k8s/policy-disallow-root.yaml
+          kubectl apply -f k8s/policy-require-labels.yaml
