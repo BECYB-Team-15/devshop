@@ -160,18 +160,17 @@ jobs:
             trivy-postgres.html
             trivy-config.json
       
-      - name: Sprawdź wyniki skanowania — zablokuj deploy jeśli CRITICAL/HIGH
+      - name: Sprawdź wyniki — zablokuj deploy jeśli CRITICAL/HIGH
         run: |
-          $backendCrit = trivy image --severity CRITICAL,HIGH --ignore-unfixed --exit-code 0 --quiet --format json ghcr.io/becyb-team-15/devshop-backend:${{ github.sha }} | ConvertFrom-Json
-          $frontendCrit = trivy image --severity CRITICAL,HIGH --ignore-unfixed --exit-code 0 --quiet --format json ghcr.io/becyb-team-15/devshop-frontend:${{ github.sha }} | ConvertFrom-Json
-
-          $backendCount = ($backendCrit.Results | ForEach-Object { $_.Vulnerabilities } | Where-Object { $_.Severity -in "CRITICAL","HIGH" } | Measure-Object).Count
-          $frontendCount = ($frontendCrit.Results | ForEach-Object { $_.Vulnerabilities } | Where-Object { $_.Severity -in "CRITICAL","HIGH" } | Measure-Object).Count
-
-          Write-Host "Backend CRITICAL/HIGH: $backendCount"
-          Write-Host "Frontend CRITICAL/HIGH: $frontendCount"
-
-          if ($backendCount -gt 0 -or $frontendCount -gt 0) { Write-Host "Znaleziono podatności — deploy zablokowany!"; exit 1 } else { Write-Host "Brak krytycznych podatności — deploy dozwolony" }
+          $b = trivy image --severity CRITICAL,HIGH --ignore-unfixed --exit-code 0 --quiet --format json ghcr.io/becyb-team-15/devshop-backend:${{ github.sha }} | ConvertFrom-Json
+          $f = trivy image --severity CRITICAL,HIGH --ignore-unfixed --exit-code 0 --quiet --format json ghcr.io/becyb-team-15/devshop-frontend:${{ github.sha }} | ConvertFrom-Json
+          $bCount = ($b.Results | ForEach-Object { $_.Vulnerabilities } | Where-Object { $_.Severity -in "CRITICAL","HIGH" } | Measure-Object).Count
+          $fCount = ($f.Results | ForEach-Object { $_.Vulnerabilities } | Where-Object { $_.Severity -in "CRITICAL","HIGH" } | Measure-Object).Count
+          Write-Host "Backend: $bCount | Frontend: $fCount"
+          if ($bCount -gt 0 -or $fCount -gt 0) {
+            Write-Error "DEPLOY BLOCKED - vulnerabilities found"
+          }
+        shell: pwsh
   # ─────────────────────────────────────────
   # JOB 3: Deploy — uruchamia się TYLKO jeśli skan przeszedł
   # ─────────────────────────────────────────
