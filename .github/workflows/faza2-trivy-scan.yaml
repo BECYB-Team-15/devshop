@@ -84,9 +84,8 @@ jobs:
           trivy image `
             --severity CRITICAL,HIGH,MEDIUM `
             --ignore-unfixed `
-            --format template `
-            --template "@$env:USERPROFILE\AppData\Local\trivy\contrib\html.tpl" `
-            --output trivy-backend.html `
+            --format json `
+            --output trivy-backend.json `
             ghcr.io/becyb-team-15/devshop-backend:${{ github.sha }}
 
       # ── Skanowanie obrazu Frontend ──
@@ -104,9 +103,8 @@ jobs:
           trivy image `
             --severity CRITICAL,HIGH,MEDIUM `
             --ignore-unfixed `
-            --format template `
-            --template "@$env:USERPROFILE\AppData\Local\trivy\contrib\html.tpl" `
-            --output trivy-frontend.html `
+            --format json `
+            --output trivy-frontend.json `
             ghcr.io/becyb-team-15/devshop-frontend:${{ github.sha }}
 
       # ── Skanowanie obrazu Postgres (oficjalny obraz) ──
@@ -124,9 +122,8 @@ jobs:
           trivy image `
             --severity CRITICAL,HIGH,MEDIUM `
             --ignore-unfixed `
-            --format template `
-            --template "@$env:USERPROFILE\AppData\Local\trivy\contrib\html.tpl" `
-            --output trivy-postgres.html `
+            --format json `
+            --output trivy-postgres.json `
             postgres:16-alpine
 
       # ── Skanowanie konfiguracji K8s i Dockerfile ──
