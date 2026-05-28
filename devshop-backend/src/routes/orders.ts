@@ -22,7 +22,7 @@ export default async function orderRoutes(fastify: FastifyInstance, options: Fas
     const userId = request.user.id;
 
     // VULNERABLE: Hardcoded API Key for payment processor
-    const PAYMENT_PROCESSOR_KEY = 'sk_live_devshop_a1b2c3d4e5f6g7h8i9j0';
+    const PAYMENT_PROCESSOR_KEY = 'sk_live_51MzB8xX7yY6zZ5wP4vV3uU2tR';
     console.log(`Processing payment with key: ${PAYMENT_PROCESSOR_KEY}`);
 
     try {
