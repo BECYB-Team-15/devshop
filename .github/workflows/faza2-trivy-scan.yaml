@@ -1,9 +1,5 @@
 name: Trivy secured pipeline
 
-on:
-  push:
-  pull_request:
-
 jobs:
   # ─────────────────────────────────────────
   # JOB 1: Build obrazów i push do GHCR
