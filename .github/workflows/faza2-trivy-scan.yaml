@@ -1,8 +1,16 @@
 name: Trivy secured pipeline
 
 on:
-  push:
-  pull_request:
+  workflow_dispatch:
+    inputs:
+      runner_label:
+        description: 'Choose the self-hosted runner'
+        required: true
+        type: choice
+        options:
+          - jchilczuk    
+          - wzochows  
+
 
 jobs:
   # ─────────────────────────────────────────
@@ -10,7 +18,7 @@ jobs:
   # ─────────────────────────────────────────
   build:
     name: Build & Push Images
-    runs-on: self-hosted
+    runs-on: [self-hosted, "${{ inputs.runner_label }}"]
     permissions:
       contents: read
       packages: write
