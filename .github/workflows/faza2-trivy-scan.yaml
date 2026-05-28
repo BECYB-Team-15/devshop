@@ -1,15 +1,35 @@
-name: Trivy secured pipeline
+name: Phase 2 Secured Pipeline
 
 on:
   push:
   pull_request:
+  workflow_dispatch: # Pozwala na ręczne uruchomienie z zakładki Actions
 
 jobs:
   # ─────────────────────────────────────────
-  # JOB 1: Build obrazów i push do GHCR
+  # JOB 1: Semgrep SAST (Skanowanie kodu na maszynach GitHuba)
+  # ─────────────────────────────────────────
+  sast_scan:
+    name: Semgrep Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout kodu
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: "p/default"
+          # Wskazówka: Semgrep zablokuje resztę pipeline'u, jeśli znajdzie luki.
+          # Jeśli chcecie to ominąć na czas dewelopmentu, odkomentujcie poniższą flagę:
+          # generateSarif: "1"
+
+  # ─────────────────────────────────────────
+  # JOB 2: Build obrazów i push do GHCR
   # ─────────────────────────────────────────
   build:
     name: Build & Push Images
+    needs: sast_scan # KLUCZOWE: Ten krok czeka na sukces Semgrepa!
     runs-on: self-hosted
     permissions:
       contents: read
@@ -46,9 +66,8 @@ jobs:
           docker push ghcr.io/becyb-team-15/devshop-frontend:${{ github.sha }}
 
   # ─────────────────────────────────────────
-  # JOB 2: Trivy — skanowanie obrazów i konfiguracji
+  # JOB 3: Trivy — skanowanie obrazów i konfiguracji
   # ─────────────────────────────────────────
-
   trivy-scan:
     name: Trivy Security Scan
     runs-on: self-hosted
@@ -179,8 +198,9 @@ jobs:
           Write-Host "Frontend CRITICAL/HIGH: $frontendCount"
 
           if ($backendCount -gt 0 -or $frontendCount -gt 0) { Write-Host "Znaleziono podatności — deploy zablokowany!"; exit 1 } else { Write-Host "Brak krytycznych podatności — deploy dozwolony" }
+
   # ─────────────────────────────────────────
-  # JOB 3: Deploy — uruchamia się TYLKO jeśli skan przeszedł
+  # JOB 4: Deploy — uruchamia się TYLKO jeśli skan przeszedł
   # ─────────────────────────────────────────
   deploy:
     name: Deploy to Kubernetes
