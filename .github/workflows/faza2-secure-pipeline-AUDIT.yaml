@@ -1,4 +1,4 @@
-name: Phase 2 Secured Pipeline
+name: Phase 2 Secured Pipeline SOFT
 
 on:
   workflow_dispatch:
@@ -25,11 +25,12 @@ jobs:
 
       - name: Run Semgrep
         uses: returntocorp/semgrep-action@v1
+        continue-on-error: true
         with:
           config: "p/default"
-          # Wskazówka: Semgrep zablokuje resztę pipeline'u, jeśli znajdzie luki.
-          # Jeśli chcecie to ominąć na czas dewelopmentu, odkomentujcie poniższą flagę:
-          # generateSarif: "1"
+          # Semgrep zablokuje resztę pipeline'u, jeśli znajdzie luki.
+          # Odkomentuj poniższą linię, jeśli chcesz tylko raportować, ale nie blokować.
+          generateSarif: "1"
 
   # ─────────────────────────────────────────
   # JOB 2: Build obrazów i push do GHCR
@@ -37,7 +38,7 @@ jobs:
   build:
     name: Build & Push Images
     needs: sast_scan # KLUCZOWE: Ten krok czeka na sukces Semgrepa!
-    runs-on: [self-hosted, "${{ inputs.runner_label }}"]
+    runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
@@ -52,6 +53,7 @@ jobs:
           fetch-depth: 0
 
       - name: Scan for hardcoded secrets
+        continue-on-error: true
         run: |
           docker run --rm -e GITLEAKS_LICENSE="${{ secrets.GITLEAKS_LICENSE }}" -v "${{ github.workspace }}:/path" zricethezav/gitleaks:latest detect --source="/path" -v
 
@@ -188,25 +190,28 @@ jobs:
         with:
           name: trivy-security-reports
           path: |
-            trivy-backend.html
-            trivy-frontend.html
-            trivy-postgres.html
+            trivy-backend.json
+            trivy-frontend.json
+            trivy-postgres.json
             trivy-config.json
       
-      - name: Sprawdź wyniki — zablokuj deploy jeśli CRITICAL/HIGH
+      - name: Sprawdź wyniki — wypisz ostrzeżenie bez blokowania
         run: |
           $b = trivy image --severity CRITICAL,HIGH --ignore-unfixed --exit-code 0 --quiet --format json ghcr.io/becyb-team-15/devshop-backend:${{ github.sha }} | ConvertFrom-Json
           $f = trivy image --severity CRITICAL,HIGH --ignore-unfixed --exit-code 0 --quiet --format json ghcr.io/becyb-team-15/devshop-frontend:${{ github.sha }} | ConvertFrom-Json
-          $bCount = ($b.Results | ForEach-Object { $_.Vulnerabilities } | Where-Object { $_.Severity -in "CRITICAL","HIGH" } | Measure-Object).Count
-          $fCount = ($f.Results | ForEach-Object { $_.Vulnerabilities } | Where-Object { $_.Severity -in "CRITICAL","HIGH" } | Measure-Object).Count
+          $bCount = 0; if ($b.Results) { $bCount = ($b.Results | ForEach-Object { $_.Vulnerabilities } | Where-Object { $_.Severity -in "CRITICAL","HIGH" } | Measure-Object).Count }
+          $fCount = 0; if ($f.Results) { $fCount = ($f.Results | ForEach-Object { $_.Vulnerabilities } | Where-Object { $_.Severity -in "CRITICAL","HIGH" } | Measure-Object).Count }
+        
           Write-Host "Backend: $bCount | Frontend: $fCount"
+          
           if ($bCount -gt 0 -or $fCount -gt 0) {
-            Write-Error "DEPLOY BLOCKED - vulnerabilities found"
-            $host.SetShouldExit(1)
+            Write-Host "::warning::Znaleziono $bCount luk w Backendzie i $fCount luk we Frontendzie. Wdrażam mimo to (Tryb Audit)."
+          } else {
+            Write-Host "Brak krytycznych luk."
           }
     
   # ─────────────────────────────────────────
-  # JOB 4: Deploy — uruchamia się TYLKO jeśli skan przeszedł
+  # JOB 4: Deploy
   # ─────────────────────────────────────────
   deploy:
     name: Deploy to Kubernetes
@@ -230,3 +235,10 @@ jobs:
           kubectl apply -f k8s/postgres-deployment.yaml
           kubectl apply -f k8s/backend-deployment.yaml
           kubectl apply -f k8s/frontend-deployment.yaml
+
+          kubectl apply -f k8s/policy-block-latest.yaml
+          kubectl apply -f k8s/policy-allowed-registries.yaml
+          kubectl apply -f k8s/policy-require-limits.yaml
+          kubectl apply -f k8s/policy-disallow-root.yaml
+          kubectl apply -f k8s/policy-require-labels.yaml
+
