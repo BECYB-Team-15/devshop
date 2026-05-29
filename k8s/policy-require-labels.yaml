@@ -1,0 +1,20 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-standard-labels
+spec:
+  validationFailureAction: Audit
+  rules:
+  - name: check-for-app-and-team-labels
+    match:
+      any:
+      - resources:
+          kinds:
+          - Pod
+    validate:
+      message: "DEVSECOPS ERROR: Every Pod must have the organizational labels 'app' and 'team'."
+      pattern:
+        metadata:
+          labels:
+            app: "?*"
+            team: "?*"
