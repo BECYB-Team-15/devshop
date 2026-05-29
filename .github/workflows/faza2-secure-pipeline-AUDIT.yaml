@@ -1,4 +1,4 @@
-name: Phase 2 Secured Pipeline SOFT
+name: Phase 2 Secured Pipeline AUDIT
 
 on:
   workflow_dispatch:
